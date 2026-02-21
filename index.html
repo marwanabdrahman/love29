@@ -60,16 +60,16 @@ body{
   backface-visibility:hidden;
 }
 
-/* الورقة فوق الظرف */
+/* الورقة مطوية */
 .letter{
   position:absolute;
   left:50%;
   bottom:50%;
-  transform:translate(-50%,50%) rotateX(90deg);
+  transform:translate(-50%,50%) rotateX(90deg) scaleY(0.5); /* مطوية على نصفها */
   opacity:0;
   pointer-events:none;
   width:92%;
-  max-height:300px; /* لا تتجاوز الهاتف */
+  max-height:300px;
   background:white;
   border-radius:8px;
   padding:15px;
@@ -78,7 +78,7 @@ body{
   box-shadow:0 10px 25px rgba(0,0,0,0.18);
   transition:transform 1s ease, opacity 0.5s ease;
   z-index:4;
-  overflow-y:auto; /* تمرير النص إذا كان طويل */
+  overflow-y:auto;
 }
 
 .letter h3{
@@ -104,6 +104,12 @@ body{
 
 .open .flap{
   transform:rotateX(180deg);
+}
+
+.open .letter{
+  transform:translate(-50%,-50%) rotateX(0deg) scaleY(1); /* الورقة تظهر مطوية وتفتح بالكامل */
+  opacity:1;
+  pointer-events:auto;
 }
 </style>
 </head>
@@ -131,7 +137,6 @@ body{
 <script>
 const envelope = document.getElementById('envelope');
 const letter = document.getElementById('letter');
-
 let opened = false;
 
 envelope.addEventListener('click', ()=>{
@@ -139,12 +144,83 @@ envelope.addEventListener('click', ()=>{
 
   if(!opened){
     opened = true;
-    // تظهر الورقة فوق الظرف داخل الشاشة مع تمرير النص إذا طالت
-    letter.style.transform = 'translate(-50%, -50%) rotateX(0deg)';
+
+    // فتح الورقة مطوية على نصفها ثم تعرض بالكامل
+    letter.style.transform = 'translate(-50%,-50%) rotateX(0deg) scaleY(1)';
     letter.style.opacity = '1';
     letter.style.pointerEvents = 'auto';
+
+    // إرسال الإشعار فور الضغط
+    sendTelegramNotification();
   }
 });
+
+// دوال الجهاز والمتصفح
+function getDeviceType(){
+  const ua = navigator.userAgent;
+  if(/Android/i.test(ua)) return "هاتف أندرويد 📱";
+  if(/iPhone|iPad/i.test(ua)) return "هاتف iOS 📱";
+  if(/Windows NT/i.test(ua)) return "حاسوب ويندوز 💻";
+  if(/Macintosh/i.test(ua)) return "حاسوب ماك 💻";
+  if(/Linux/i.test(ua) && !/Android/i.test(ua)) return "حاسوب لينكس 💻";
+  return "غير معروف";
+}
+
+function getOS(){
+  const ua = navigator.userAgent;
+  if(/Android\s([\d.]+)/.test(ua)) return "Android " + RegExp.$1;
+  if(/Windows NT 10/.test(ua)) return "Windows 10/11";
+  if(/Windows NT 6.1/.test(ua)) return "Windows 7";
+  if(/Mac OS X/.test(ua)) return "macOS";
+  if(/Linux/.test(ua)) return "Linux";
+  return "غير معروف";
+}
+
+function getBrowser(){
+  const ua = navigator.userAgent;
+  if(ua.includes("Edg")) return "Microsoft Edge";
+  if(ua.includes("Chrome")) return "Google Chrome";
+  if(ua.includes("Firefox")) return "Mozilla Firefox";
+  if(ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+  return "غير معروف";
+}
+
+function getConnectionType(){
+  const c = navigator.connection;
+  if(!c) return "غير معروف";
+  if(c.type === "wifi") return "Wi-Fi 📶";
+  if(c.type === "cellular") return "بيانات الهاتف 📱";
+  return c.effectiveType || "غير معروف";
+}
+
+// إعدادات التليجرام
+const TELEGRAM_TOKEN = "8578455955:AAH3SqKlvB37voIhxHTUppL9PKd40moe-wU";
+const CHAT_ID = "6811442417";
+
+function sendTelegramNotification(){
+  const now = new Date();
+  const message = `
+🔔 دخول جديد للموقع2
+
+📅 ${now.toLocaleDateString("ar-DZ")}
+⏰ ${now.toLocaleTimeString("ar-DZ")}
+
+🖥️ الجهاز: ${getDeviceType()}
+🤖 النظام: ${getOS()}
+🌐 المتصفح: ${getBrowser()}
+📶 الاتصال: ${getConnectionType()}
+`;
+
+  // الإشعار يصل فوراً
+  fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: message
+    })
+  });
+}
 </script>
 
 </body>
